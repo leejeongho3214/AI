@@ -9,7 +9,7 @@ dist/
 
 # pytorch/python formats
 *.pth
-*.pkl
+# *.pkl
 
 # ipython/jupyter notebooks
 *.ipynb
