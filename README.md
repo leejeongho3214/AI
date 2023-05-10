@@ -112,15 +112,33 @@ wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
     |-- README.md 
     |-- ... 
     |-- ... 
-    ```
+    ``` 
+</br></br>
 
-## 
+## arg 인자
+
+- train_yaml/ val_yaml: 학습시킬 데이터셋을 의미 (default: freihand/train.yml)
+- per_gpu_train_batch_size/ per_gpu_val_batch_size: batch size (default: 64)
+- which_gcn: 해당 모델의 3개 encoder block 중에서 어느 block에 gcn을 할지 결정 (default: 0,0,1) (맨 마지막 block에만 gcn을 넣을 때가 성능이 가장 우수)
+- mesh_type: body or hand poes estimation을 할지 결정 (default: hand)
+- multiscale_inference: 위 img_scale_factor를 이용해 입력 이미지의 손 크기를 다양하게 가져갈지 (default: false)
+- rot: 입력 이미지의 회전 (default: 0)
+- sc: 입력 이미지의 scale을 조절. 즉, crop하거나 padding을 주어 손의 크기를 다양하게 가져감 (default: 1) </br></br>
 
 ## Train
 ``` bash
 python src/tools/run_gphmer_handmesh.py
 ```
-- 해당 코드를 실행하면, sample.png 이미지를 입력으로 받아 2D & 3D joint coordinate가 모델의 출력으로 나옴
+
+</br></br>
+
+## Demo
+``` bash
+python src/tools/run_gphmer_handmesh_inference.py --resume_checkpoint models/graphormer_release/graphormer_hand_state_dict.bin --image_file_or_path samples/hand
+```
+- samples/hand 폴더 안에 있는 7장의 sample 이미지들에 대해서 해당 모델의 출력으로 나온 mesh가 입혀져 나온 이미지로 저장되게 됌
+- *_pred.jpg로 저장
+
 </br></br>
 
 ## 주요 Code 분석
@@ -129,10 +147,12 @@ src/modeling/bert/e2e_hand_network.py
 ```
 - 위 파일은 전체적인 모델의 구조를 나타냄
 - 입력으로 받은 이미지를 backbone network에 넣어주어 image_feat, grid_feat로 나옴
-- image_feat는 average pooling 적용한 뒤 21개로 값을 복사
+- image_feat는 average pooling 적용한 뒤 똑같은 값으로 21개 값을 복사
 - grid_feat는 7 x 7 feature map을 flatten
-- 위 두 개를 concat해주어 70개의 token + 2048차원으로 만들어 70 x 2048 token 만듦
-- 인코더에 넣고 출력으로 나온 70개의 token 중 image_feat에 해당하는 앞 21개의 token으로 3차원 pose coordinate를 MLP 통해서 얻어냄</br></br>
+- reg_vertices는 추론할 195개의 vertex를 MANO모델을 통해 init된 값
+- 위 세 개를 concat해주고 차원을 2051차원으로 맞춰주어 결론적으로 265 x 2051 token을 만듦
+- 인코더에 넣고 출력으로 나온 265개의 token 중 image_feat에 해당하는 앞 21개의 token으로 3차원 pose coordinate를 MLP 통해서 차원축소를 통해 21 x 3 크기의 joint location을 얻어냄
+- 3차원 pose coordinate와 더불어 3차원 mesh coordinate에 해당하는 265개의 token 중 중간 195개를 MLP를 통해서 778 x 3의 3차원 mesh coordinate를 얻음 (course-to-fine)</br></br>
 
 ```bash
 src/modeling/hrnet/hrnet_cls_net_gridfeat.py
@@ -165,8 +185,8 @@ src/modeling/_gcnn.py
 ```bash
 # Multi-Head Self-Attention
 function MultiHeadSelfAttention(X):
-    # h: the number of head (default 4)
-    h = 4
+    # h: the number of head (default 8)
+    h = 8
     Q = X * WQ  # WQ, WK, WV: the weight of each Q, K, V
     K = X * WK
     V = X * WV
@@ -227,18 +247,22 @@ function GraphResidualBlock(X):
 ``` bash
 # Overall Framework
 # X: 2D RGB Image (h x w x 3)
+# P, B: MANO model의 parameter (pose: 1 x 10, beta: 1x 48)
 
 # Backbone 모델을 통해 특징 맵 추출
-X = backbone(X)  ## 7 x 7 x 2048 크기의 특징 맵
+X = backbone(X)  ## 7 x 7 x 2051 크기의 특징 맵
 
 # 특징 맵을 평탄화해주어 Grid 형태로 변환
-Grid_feat = Flatten(X)  ## 49 x 2048 크기의 토큰
+Grid_feat = Flatten(X)  ## 49 x 2051 크기의 토큰
 
 # 특징 맵을 average pooling을 통해서 global 정보를 담고 있는 피쳐로 변환
-Image_feat = Repeat(AveragePooling(X), 21)  ## 2048 크기의 토큰을 hand joint 개수인 21개로 복제해서 24 x 2048 크기의 토큰을 만듦
+Image_feat = Repeat(AveragePooling(X), 21)  ## 2048 크기의 토큰을 hand joint 개수인 21개로 복제해서 21 x 2051 크기의 토큰을 만듦
 
-# Transformer-Encoder에 넣어줄 입력 token 
-Input_token = Concatenate(Image_feat, Grid_feat)
+# MANO 모델을 통해 init한 195개의 vertex값을 얻음
+Ref_vertices = MANO(P, B)   ## 195 x 2051
+
+# Transformer-Encoder에 넣어줄 입력 token
+Input_token = Concatenate(Image_feat, Grid_feat, Ref_vertices)
 
 # Transformer encoder 3개를 지나고 마지막 encoder에선 Graph Conv를 적용함
 for j = 1 to 3 do:
@@ -248,5 +272,6 @@ for j = 1 to 3 do:
             Graph_token = GraphResidualBlock(Input_token[:21])
             Output_token = Concatenate(Graph_token, Input_token[21:]) ## Output_token: 70 x 64
 
-Final_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
+Joint_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
+Vertex_output = MLP(Output_token[21:216]) ## 195 x 3의 vertex를 MLP로 upsampling해서 총 778 x 3의 vertex coordinate를 구함
 
