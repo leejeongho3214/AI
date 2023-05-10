@@ -492,9 +492,9 @@ def parse_args():
     #########################################################
     parser.add_argument("--data_dir", default='datasets', type=str, required=False,
                         help="Directory with all datasets, each in one subfolder")
-    parser.add_argument("--train_yaml", default='imagenet2012/train.yaml', type=str, required=False,
+    parser.add_argument("--train_yaml", default='freihand/train.yaml', type=str, required=False,
                         help="Yaml file with all data for training.")
-    parser.add_argument("--val_yaml", default='imagenet2012/test.yaml', type=str, required=False,
+    parser.add_argument("--val_yaml", default='freihand/test.yaml', type=str, required=False,
                         help="Yaml file with all data for validation.")
     parser.add_argument("--num_workers", default=4, type=int, 
                         help="Workers in dataloader.")       
