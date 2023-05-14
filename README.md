@@ -19,7 +19,7 @@
 - 구조는 transformer encoder 3개를 이어 붙인 형태이며, 맨 마지막 encoder block에는 GCN을 사용
 - Backbone network로 HRNet(CVPR 2019)을 사용함
 - 위 모델은 일반적인 CNN의 layer를 거치면서 발생하는 feature map의 resolution 감소를 feature map의 resolution별로 병렬 연산 처리를 하여 문제점을 해결함으로써 Pose 분야에서 ResNet보다 우수한 성능을 보여 주로 pose 분야에서 주로 사용되는 모델임 </br></br>
-- backbone인 hrnet의 출력은 여러 개의 resolution을 가진 feature map이 나오게 됨
+- Backbone인 hrnet의 출력은 여러 개의 resolution을 가진 feature map이 나오게 됨
 - 해당 논문에서는 그 중 resolution이 젤 작은 7 x 7 feature map을 사용함
 - Feature map을 가지고 transformer의 input으로 넣어줄 token을 만들어 주며, 2가지 컨셉으로 제작함
     - 첫번째로는 단순히 feature map을 flatten해주어 49개의 token을 만들어줌
