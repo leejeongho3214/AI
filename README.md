@@ -92,7 +92,7 @@ cd $INSTALL_DIR
 sh scripts/download_models.sh
 wget https://datarelease.blob.core.windows.net/metro/datasets/freihand.tar
 tar -xvf freihand.tar
-wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
+rm -rf freihand.tar
 ```
 
     ```
