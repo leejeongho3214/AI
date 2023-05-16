@@ -56,10 +56,10 @@
 conda create --name gphmr python=3.7
 conda activate gphmr
 
-# Install Pytorch
-conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch
-
 export INSTALL_DIR=$PWD
+
+# Install Pytorch
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 
 # Install apex
 cd $INSTALL_DIR
@@ -84,6 +84,13 @@ pip install -r requirements.txt
 cd $INSTALL_DIR
 cd MeshGraphormer
 pip install ./manopth/.
+
+
+# Download My git
+git clone https://github.com/leejeongho3214/AI.git
+
+# Move the MANO model
+mv AI/
 
 ```
 
