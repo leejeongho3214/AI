@@ -50,7 +50,7 @@
 - Ubuntu 20.04
 </br></br>
 
-## Setup with Conda
+## Setup with Conda [따로 Git clone해서 파일을 다운 받을 필요없이 아래 코드 복붙 하시면 됩니다]
 ```bash
 # Create a new environment
 conda create --name gphmr python=3.7
@@ -88,13 +88,11 @@ pip install ./manopth/.
 
 ## Download
 ```bash
-cd $INSTALL_DIR
 sh scripts/download_models.sh
 wget https://datarelease.blob.core.windows.net/metro/datasets/freihand.tar
 tar -xvf freihand.tar
 rm -rf freihand.tar
 ```
-
     ```
     ${INSTALL_DIR}  
     |-- models  
