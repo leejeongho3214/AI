@@ -79,6 +79,7 @@ python setup.py build develop
 
 # Install requirements
 pip install -r requirements.txt
+pip install chardet
 
 # Install manopth
 cd $INSTALL_DIR
@@ -90,7 +91,7 @@ pip install ./manopth/.
 git clone https://github.com/leejeongho3214/AI.git
 
 # Move the MANO model
-mv AI/
+mv AI/src/modeling/data/MANO_RIGHT.pkl src/modeling/data/ 
 
 ```
 
