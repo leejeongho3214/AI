@@ -56,7 +56,8 @@
 conda create --name gphmr python=3.7
 conda activate gphmr
 
-# Install Pytorchconda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch
+# Install Pytorch
+conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch
 
 export INSTALL_DIR=$PWD
 
