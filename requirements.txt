@@ -11,3 +11,4 @@ requests
 chardet
 azureml
 azureml.core
+chardet
