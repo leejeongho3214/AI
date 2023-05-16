@@ -18,17 +18,19 @@
 - 해당 논문에서 처음으로 Transformer를 사용함
 - 구조는 transformer encoder 3개를 이어 붙인 형태이며, 맨 마지막 encoder block에는 GCN을 사용
 - Backbone network로 HRNet(CVPR 2019)을 사용함
-- 위 모델은 일반적인 CNN의 layer를 거치면서 발생하는 feature map의 resolution 감소를 feature map의 resolution별로 병렬 연산 처리를 하여 문제점을 해결함으로써 Pose 분야에서 ResNet보다 우수한 성능을 보여 주로 pose 분야에서 주로 사용되는 모델임 </br></br>
+- 위 모델은 일반적인 CNN의 layer를 거치면서 발생하는 feature map의 resolution 감소를 feature map의 resolution별로 병렬 연산 처리를 하여 문제점을 해결함으로써 Pose 분야에서 ResNet보다 우수한 성능을 보여 주로 pose 분야에서 주로 사용되는 모델임
 - backbone인 hrnet의 출력은 여러 개의 resolution을 가진 feature map이 나오게 됨
 - 해당 논문에서는 그 중 resolution이 젤 작은 7 x 7 feature map을 사용함
 - Feature map을 가지고 transformer의 input으로 넣어줄 token을 만들어 주며, 2가지 컨셉으로 제작함
     - 첫번째로는 단순히 feature map을 flatten해주어 49개의 token을 만들어줌
     - 두번째로는 average pooling을 한 뒤, 21개로 복제함
     - 위 방법들로 총 70개의 token을 제작하였으며, 서로 다른 두 가지 방법으로 local & global 정보를 모두 포함했다고 저자들이 주장함
+- MANO 모델을 이용해 논문에서 template라는 표현을 쓰는 vertex 값을 제작함. 195 x 2051 크기
+- 그래서 앞선 feature map으로 만든 70 x 2051 토큰과 MANO 모델로 얻은 195 x 2051 토큰을 concat하여 265 x 2051 토큰을 모델의 입력토큰으로 사용함
 - Transformer encoder block 3개 중에 맨 마지막 block에만 GCN을 사용한 이유는 다양하게 GCN을 사용해 했을 때 맨 마지막 block에만 사용한 것이 가장 성능이 좋게 나왔기 때문임
 - 최종 출력에서 여러 개의 token이 나오게 되며, 단순히 flateen 해서 만든 49개의 token은 grid로만 사용한 것이라 최종 출력에서는 사용하지 않고 21개의 token만을 가지고 upsampling을 하여 195개의 vertex coordinate를 얻어냄
-- 한번에 195개의 vertex를 얻어내는 것보다 21개의 vertex를 얻어낸 뒤에 upsampling 하는 방식을 택함 (course-to-fine)
-- 결론적으로, 2D RGB image를 넣어 backbone을 거쳐서 나온 7 x 7 feature map을 활용하여 70개의 token을 만들어 주어 transformer에 넣어주어 나온 70개의 token들 중 21개의 token이 3차원 pose coordinate가 됌
+- 한번에 778개의 vertex를 얻어내는 것보다 195개의 vertex를 얻어낸 뒤에 upsampling 하는 방식을 택함 (course-to-fine)
+- 결과적으로, 2D RGB image를 넣어 backbone을 거쳐서 나온 7 x 7 feature map과 초기화한 vertex 값을 활용하여 265개의 token을 만들어 주어 transformer에 넣어주어 나온 265개의 token들 중 맨 앞 21개는 3d pose coordinate이며, 바로 뒤 195개는 3d mesh coordinate를 의미하여 3차원으로 downsampling해서 최종 출력으로 3차원의 값을 얻게 됌
 
 </br>
 <p align = "center">
@@ -123,7 +125,8 @@ wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
 - mesh_type: body or hand poes estimation을 할지 결정 (default: hand)
 - multiscale_inference: 위 img_scale_factor를 이용해 입력 이미지의 손 크기를 다양하게 가져갈지 (default: false)
 - rot: 입력 이미지의 회전 (default: 0)
-- sc: 입력 이미지의 scale을 조절. 즉, crop하거나 padding을 주어 손의 크기를 다양하게 가져감 (default: 1) </br></br>
+- sc: 입력 이미지의 scale을 조절. 즉, crop하거나 padding을 주어 손의 크기를 다양하게 가져감 (default: 1) 
+</br></br>
 
 ## Train
 ``` bash
