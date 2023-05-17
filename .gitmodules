@@ -4,3 +4,6 @@
 [submodule "transformers"]
 	path = transformers
 	url = https://github.com/huggingface/transformers.git
+[submodule "MeshGraphormer"]
+	path = MeshGraphormer
+	url = https://github.com/microsoft/MeshGraphormer.git
