@@ -86,6 +86,8 @@ cd $INSTALL_DIR
 cd MeshGraphormer
 pip install ./manopth/.
 
+# Download model 
+sh scripts/download_models.sh
 
 # Download My git
 git clone https://github.com/leejeongho3214/AI.git
@@ -93,15 +95,15 @@ git clone https://github.com/leejeongho3214/AI.git
 # Move the MANO model
 mv AI/src/modeling/data/MANO_RIGHT.pkl src/modeling/data/ 
 
-```
-
-## Download
-```bash
-sh scripts/download_models.sh
+# Download the FreiHAND as train dataset
 wget https://datarelease.blob.core.windows.net/metro/datasets/freihand.tar
 tar -xvf freihand.tar
 rm -rf freihand.tar
-```
+``` 
+</br></br>
+
+
+## Directory tree
     ```
     ${INSTALL_DIR}  
     |-- models  
