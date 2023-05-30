@@ -1,6 +1,7 @@
 # ✨ Mesh Graphormer (ICCV 2021) ✨
 
 ## 제출자
+
 이름 : 이정호 <br/>
 학번 : 72210297 <br/>
 학과 : 컴퓨터학과 <br/>
@@ -8,11 +9,12 @@
 지도교수: 최상일 교수 <br/>
 구현 논문 링크: [Mesh Graphormer](https://arxiv.org/abs/2104.00272) </br>
 
- <img src="docs/Fig1.gif" width="200"> <img src="docs/Fig2.gif" width="200"> <img src="docs/Fig3.gif" width="200">  <img src="docs/Fig4.gif" width="200"> 
+<img src="docs/Fig1.gif" width="200"> <img src="docs/Fig2.gif" width="200"> <img src="docs/Fig3.gif" width="200"> <img src="docs/Fig4.gif" width="200">
 
- <img src="https://datarelease.blob.core.windows.net/metro/graphormer_demo.gif" width="200"> </br></br>
+<img src="https://datarelease.blob.core.windows.net/metro/graphormer_demo.gif" width="200"> </br></br>
 
 ## 모델 설명
+
 - 2D RGB 이미지를 입력으로 받아 3차원 hand pose coordinate를 출력으로 함
 - 기존에는 2017년 처음으로 CNN 모델을 사용하여 3D hand pose estimation을 수행하였으며 그 이후 GCN를 활용하여 성능 향상을 시킴
 - 해당 논문에서 처음으로 Transformer를 사용함
@@ -22,9 +24,9 @@
 - backbone인 hrnet의 출력은 여러 개의 resolution을 가진 feature map이 나오게 됨
 - 해당 논문에서는 그 중 resolution이 젤 작은 7 x 7 feature map을 사용함
 - Feature map을 가지고 transformer의 input으로 넣어줄 token을 만들어 주며, 2가지 컨셉으로 제작함
-    - 첫번째로는 단순히 feature map을 flatten해주어 49개의 token을 만들어줌
-    - 두번째로는 average pooling을 한 뒤, 21개로 복제함
-    - 위 방법들로 총 70개의 token을 제작하였으며, 서로 다른 두 가지 방법으로 local & global 정보를 모두 포함했다고 저자들이 주장함
+  - 첫번째로는 단순히 feature map을 flatten해주어 49개의 token을 만들어줌
+  - 두번째로는 average pooling을 한 뒤, 21개로 복제함
+  - 위 방법들로 총 70개의 token을 제작하였으며, 서로 다른 두 가지 방법으로 local & global 정보를 모두 포함했다고 저자들이 주장함
 - MANO 모델을 이용해 논문에서 template라는 표현을 쓰는 vertex 값을 제작함. 195 x 2051 크기
 - 그래서 앞선 feature map으로 만든 70 x 2051 토큰과 MANO 모델로 얻은 195 x 2051 토큰을 concat하여 265 x 2051 토큰을 모델의 입력토큰으로 사용함
 - Transformer encoder block 3개 중에 맨 마지막 block에만 GCN을 사용한 이유는 다양하게 GCN을 사용해 했을 때 맨 마지막 block에만 사용한 것이 가장 성능이 좋게 나왔기 때문임
@@ -38,19 +40,20 @@
  HRNet Overall Architecture (backbone)
 </p></br>
 
-
 <p align = "center">
  <img src="docs/graphormer_overview.png" width="650" ></br>
  Mesh Graphomer Overall Architecture
 </p></br>
 
 ## Environment
+
 - Python 3.8.10
 - CUDA 11.7
 - Ubuntu 20.04
-</br></br>
+  </br></br>
 
 ## Setup with Conda
+
 ```bash
 # Create a new environment
 conda create --name gphmr python=3.7
@@ -87,6 +90,7 @@ pip install ./manopth/.
 ```
 
 ## Download
+
 ```bash
 cd $INSTALL_DIR
 sh scripts/download_models.sh
@@ -96,8 +100,8 @@ wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
 ```
 
     ```
-    ${INSTALL_DIR}  
-    |-- models  
+    ${INSTALL_DIR}
+    |-- models
     |   |-- graphormer_release
     |   |   |-- graphormer_hand_state_dict.bin
     |   |-- hrnet
@@ -110,10 +114,11 @@ wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
     |   |-- modeling
     |   |   |-- data
     |   |   |   |-- MANO_RIGHT.pkl
-    |-- README.md 
-    |-- ... 
-    |-- ... 
-    ``` 
+    |-- README.md
+    |-- ...
+    |-- ...
+    ```
+
 </br></br>
 
 ## arg 인자
@@ -124,29 +129,34 @@ wget https://psfiles.is.tuebingen.mpg.de/downloads/mano/mano_v1_2-zip
 - mesh_type: body or hand poes estimation을 할지 결정 (default: hand)
 - multiscale_inference: 위 img_scale_factor를 이용해 입력 이미지의 손 크기를 다양하게 가져갈지 (default: false)
 - rot: 입력 이미지의 회전 (default: 0)
-- sc: 입력 이미지의 scale을 조절. 즉, crop하거나 padding을 주어 손의 크기를 다양하게 가져감 (default: 1) 
-</br></br>
+- sc: 입력 이미지의 scale을 조절. 즉, crop하거나 padding을 주어 손의 크기를 다양하게 가져감 (default: 1)
+  </br></br>
 
 ## Train
-``` bash
+
+```bash
 python src/tools/run_gphmer_handmesh.py
 ```
 
 </br></br>
 
 ## Demo
-``` bash
+
+```bash
 python src/tools/run_gphmer_handmesh_inference.py --resume_checkpoint models/graphormer_release/graphormer_hand_state_dict.bin --image_file_or_path samples/hand
 ```
+
 - samples/hand 폴더 안에 있는 7장의 sample 이미지들에 대해서 해당 모델의 출력으로 나온 mesh가 입혀져 나온 이미지로 저장되게 됌
-- *_pred.jpg로 저장
+- \*\_pred.jpg로 저장
 
 </br></br>
 
 ## 주요 Code 분석
+
 ```bash
 src/modeling/bert/e2e_hand_network.py
 ```
+
 - 위 파일은 전체적인 모델의 구조를 나타냄
 - 입력으로 받은 이미지를 backbone network에 넣어주어 image_feat, grid_feat로 나옴
 - image_feat는 average pooling 적용한 뒤 똑같은 값으로 21개 값을 복사
@@ -159,28 +169,30 @@ src/modeling/bert/e2e_hand_network.py
 ```bash
 src/modeling/hrnet/hrnet_cls_net_gridfeat.py
 ```
+
 - 위 파일은 backbone network에 해당하는 파일
 - 입력 이미지가 들어가서 여러 개의 resolution을 가진 feature map들이 병렬로 연산이 수행됨
 - 최종적으로, y_list라는 list에는 4개의 feature map들이 있으며 해당 feature map들의 크기는 아래와 같음
-    - 7 x 7
-    - 14 x 14
-    - 28 x 28
-    - 56 x 56
+  - 7 x 7
+  - 14 x 14
+  - 28 x 28
+  - 56 x 56
 - 위 4개의 feature map 중에서 저자들은 7 x 7 feature map을 사용함 </br> </br>
 
 ```bash
 src/modeling/bert/modeling_graphormer.py
 ```
+
 - 위 파일에는 Encoder block에 들어가는 주요 내용들이 담긴 파일
 - 흔히 사용하는 transformer encoder code </br> </br>
 
 ```bash
 src/modeling/_gcnn.py
 ```
+
 - 위 파일에는 마지막 encoder block에 들어가는 GCN에 관련된 내용들이 있는 파일
 - Graph Convolution
 - Graph Linear </br> </br>
-
 
 ## 모델의 주요 Pseudo Code
 
@@ -221,13 +233,13 @@ function GraphConv(X):
     ## A: adjacency matrix (n x n)
     ## Y: the contextualized features (n x d)
     ## W: the trainable parameters
-    Y = A * X * W  
+    Y = A * X * W
     Y = activation_function(Y)  # use a ReLU
     return Y
 
 function GraphLinear(X):
     ## b: bias
-    Y = W * X + b 
+    Y = W * X + b
     return Y
 
 function GraphResidualBlock(X):
@@ -245,8 +257,7 @@ function GraphResidualBlock(X):
     return Z
 ```
 
-
-``` bash
+```bash
 # Overall Framework
 # X: 2D RGB Image (h x w x 3)
 # P, B: MANO model의 parameter (pose: 1 x 10, beta: 1x 48)
@@ -276,4 +287,29 @@ for j = 1 to 3 do:
 
 Joint_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
 Vertex_output = MLP(Output_token[21:216]) ## 195 x 3의 vertex를 MLP로 upsampling해서 총 778 x 3의 vertex coordinate를 구함
+```
 
+## 변경하게 된 이유
+
+- 아래 기존 모델에선 task가 3D hand pose estimation이 아닌 3D hand mesh reconstruction이 목적임
+  - 3D hand pose: 21개의 손 관절의 위치를 찾음
+  - 3D hand mesh reconstruction: 778개의 손 vertex를 찾음. 찾은 vertex를 hand model인 MANO에 넣으면 손의 외형이 복원됨
+- 현재 진행중인 프로젝트가 새로운 synthetic dataset for 3D hand pose estimation을 제작하는 것인데 해당 generator에 3D mesh 정보를 뽑을 수 없음. 이유는 3D mesh는 hand model인 MANO 모델 저자들에게 우리의 데이터들을 보내어 3D mesh를 받아내야 되는 등 절차가 복잡함
+- 위와 같이 3D mesh annotation의 부재를 해결하기 위해 3D hand pose annotation만을 가지고 학습 가능한 모델을 제작함
+
+## 변경점
+
+- Multi-Layer Grpahormer Encoder의 입력으로 들어가는 원래 토큰 (49개 + 195개\_vertices+ 21 개\_joint)에서 (49개 + 21개\_joint)에 해당하는 70개의 token만을 가지고 학습을 진행함
+  - 기존: 265개의 토큰을 입력으로
+  - 변경: 70개의 토큰을 입력으로
+- 원래 Encoder Block의 마지막 encoder에 graph convolution을 사용해주며, conv를 적용해주는 token은 전체 token 중 195개 vertices에 해당하는 token만을 가지고 적용함. 하지만 우리는 해당 토큰이 없기
+  - 기존: 195개의 vertices에 GCN을 적용
+  - 변경: 21개의 joints에 GCN을 적용
+- 기존 모델은 출력 토큰 중 195개의 vertices 토큰을 course-to-fine 방식으로 MLP에 넣어 778개의 vertices를 구해줌. 또한, 3D mesh 정보를 얻기 위해 MANO 모델에 넣어주어 정보들을 얻어주게 됌. 그래서 나에게 불필요한 모듈들이라 모두 제거해줌
+- 위 내용들이 반영된 모델구조는 아래 그림과 같음
+
+</br>
+<p align = "center">
+ <img src="docs/AI.png" width="500"> </br>
+ Revision model
+</p></br>
