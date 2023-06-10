@@ -179,38 +179,16 @@ def run(args, train_dataloader, Graphormer_model, mano_model, renderer, mesh_sam
         meta_masks = torch.cat([mjm_mask_, mvm_mask_], dim=1)
         
         # forward-pass
-        pred_camera, pred_3d_joints, pred_vertices_sub, pred_vertices = Graphormer_model(images, mano_model, mesh_sampler, meta_masks=meta_masks, is_train=True)
+        _, pred_3d_joints = Graphormer_model(images)
 
-        # obtain 3d joints, which are regressed from the full mesh
-        pred_3d_joints_from_mesh = mano_model.get_3d_joints(pred_vertices)
-
-        # obtain 2d joints, which are projected from 3d joints of smpl mesh
-        pred_2d_joints_from_mesh = orthographic_projection(pred_3d_joints_from_mesh.contiguous(), pred_camera.contiguous())
-        pred_2d_joints = orthographic_projection(pred_3d_joints.contiguous(), pred_camera.contiguous())
-        
         # compute 3d joint loss  (where the joints are directly output from transformer)
         loss_3d_joints = keypoint_3d_loss(criterion_keypoints, pred_3d_joints, gt_3d_joints_with_tag, has_3d_joints)
 
-        # compute 3d vertex loss
-        loss_vertices = ( args.vloss_w_sub * vertices_loss(criterion_vertices, pred_vertices_sub, gt_vertices_sub, has_mesh) + \
-                            args.vloss_w_full * vertices_loss(criterion_vertices, pred_vertices, gt_vertices, has_mesh) )
-
-        # compute 3d joint loss (where the joints are regressed from full mesh)
-        loss_reg_3d_joints = keypoint_3d_loss(criterion_keypoints, pred_3d_joints_from_mesh, gt_3d_joints_with_tag, has_3d_joints)
-        # compute 2d joint loss
-        loss_2d_joints = keypoint_2d_loss(criterion_2d_keypoints, pred_2d_joints, gt_2d_joints, has_2d_joints)  + \
-                         keypoint_2d_loss(criterion_2d_keypoints, pred_2d_joints_from_mesh, gt_2d_joints, has_2d_joints)
-        
-        loss_3d_joints = loss_3d_joints + loss_reg_3d_joints
             
         # we empirically use hyperparameters to balance difference losses
-        loss = args.joints_loss_weight*loss_3d_joints + \
-                args.vertices_loss_weight*loss_vertices  + args.vertices_loss_weight*loss_2d_joints
-
+        loss = args.joints_loss_weight*loss_3d_joints
+            
         # update logs
-        log_loss_2djoints.update(loss_2d_joints.item(), batch_size)
-        log_loss_3djoints.update(loss_3d_joints.item(), batch_size)
-        log_loss_vertices.update(loss_vertices.item(), batch_size)
         log_losses.update(loss.item(), batch_size)
 
         # back prop
@@ -235,25 +213,7 @@ def run(args, train_dataloader, Graphormer_model, mano_model, renderer, mesh_sam
             )
 
             aml_run.log(name='Loss', value=float(log_losses.avg))
-            aml_run.log(name='3d joint Loss', value=float(log_loss_3djoints.avg))
-            aml_run.log(name='2d joint Loss', value=float(log_loss_2djoints.avg))
-            aml_run.log(name='vertex Loss', value=float(log_loss_vertices.avg))
 
-            visual_imgs = visualize_mesh(   renderer,
-                                            annotations['ori_img'].detach(),
-                                            annotations['joints_2d'].detach(),
-                                            pred_vertices.detach(), 
-                                            pred_camera.detach(),
-                                            pred_2d_joints_from_mesh.detach())
-            visual_imgs = visual_imgs.transpose(0,1)
-            visual_imgs = visual_imgs.transpose(1,2)
-            visual_imgs = np.asarray(visual_imgs)
-
-            if is_main_process()==True:
-                stamp = str(epoch) + '_' + str(iteration)
-                temp_fname = args.output_dir + 'visual_' + stamp + '.jpg'
-                cv2.imwrite(temp_fname, np.asarray(visual_imgs[:,:,::-1]*255))
-                aml_run.log_image(name='visual results', path=temp_fname)
 
         if iteration % iters_per_epoch == 0:
             if epoch%10==0:
@@ -516,9 +476,9 @@ def parse_args():
     #########################################################
     # Training parameters
     #########################################################
-    parser.add_argument("--per_gpu_train_batch_size", default=64, type=int, 
+    parser.add_argument("--per_gpu_train_batch_size", default=32, type=int, 
                         help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--per_gpu_eval_batch_size", default=64, type=int, 
+    parser.add_argument("--per_gpu_eval_batch_size", default=32, type=int, 
                         help="Batch size per GPU/CPU for evaluation.")
     parser.add_argument('--lr', "--learning_rate", default=1e-4, type=float, 
                         help="The initial lr.")
@@ -542,7 +502,7 @@ def parse_args():
                         "hidden_size / num_attention_heads should be in integer.")
     parser.add_argument("--intermediate_size", default=-1, type=int, required=False, 
                         help="Update model config if given.")
-    parser.add_argument("--input_feat_dim", default='2051,512,128', type=str, 
+    parser.add_argument("--input_feat_dim", default='2048,512,128', type=str, 
                         help="The Image Feature Dimension.")          
     parser.add_argument("--hidden_feat_dim", default='1024,256,64', type=str, 
                         help="The Image Feature Dimension.")  
@@ -647,7 +607,7 @@ def main(args):
                 if arg_param > 0 and arg_param != config_param:
                     logger.info("Update config parameter {}: {} -> {}".format(param, config_param, arg_param))
                     setattr(config, param, arg_param)
-
+            config.num_attention_heads = 16
             # init a transformer encoder and append it to a list
             assert config.hidden_size % config.num_attention_heads == 0
             model = model_class(config=config) 
@@ -680,7 +640,7 @@ def main(args):
         logger.info('Backbone total parameters: {}'.format(backbone_total_params))
 
         # build end-to-end Graphormer network (CNN backbone + multi-layer Graphormer encoder)
-        _model = Graphormer_Network(args, config, backbone, trans_encoder)
+        _model = Graphormer_Network(args, backbone, trans_encoder)
 
         if args.resume_checkpoint!=None and args.resume_checkpoint!='None':
             # for fine-tuning or resume training or inference, load weights from checkpoint

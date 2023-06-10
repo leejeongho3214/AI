@@ -311,5 +311,54 @@ Vertex_output = MLP(Output_token[21:216]) ## 195 x 3의 vertex를 MLP로 upsampl
 </br>
 <p align = "center">
  <img src="docs/AI.png" width="500"> </br>
- Revision model
+ Revision Model Architecture
 </p></br>
+
+## Train
+
+```bash
+python src/tools/run_gphmer_handmesh.py
+```
+- revision 전과 다르게 mesh 정보를 사용하지 않고 학습을 하게 되며, 3d pose만을 가지고 학습함
+
+</br></br>
+
+## Demo
+
+```bash
+python src/tools/run_gphmer_handmesh_inference.py
+```
+
+- samples/hand 폴더 안에 있는 이미지들에 대해서 해당 모델의 출력으로 나온 3D pose가 시각화됌
+- \*\_vis.jpg로 저장
+
+</br></br>
+
+## 모델의 변경된 Pseudo Code
+
+```bash
+# Overall Framework
+# X: 2D RGB Image (h x w x 3)
+
+# Backbone 모델을 통해 특징 맵 추출
+X = backbone(X)  ## 7 x 7 x 2048 크기의 특징 맵
+
+# 특징 맵을 평탄화해주어 Grid 형태로 변환
+Grid_feat = Flatten(X)  ## 49 x 2048 크기의 토큰
+
+# 특징 맵을 average pooling을 통해서 global 정보를 담고 있는 피쳐로 변환
+Image_feat = Repeat(AveragePooling(X), 21)  ## 2048 크기의 토큰을 hand joint 개수인 21개로 복제해서 21 x 2048 크기의 토큰을 만듦
+
+# Transformer-Encoder에 넣어줄 입력 token
+Input_token = Concatenate(Image_feat, Grid_feat)
+
+# Transformer encoder 3개를 지나고 마지막 encoder에선 Graph Conv를 적용함
+for j = 1 to 3 do:
+    for i = 1 to 4 do:
+        Input_token = MultiHeadSelfAttention(Input_token)
+        if j = 3 do:
+            Graph_token = GraphResidualBlock(Input_token[:21])
+            Output_token = Concatenate(Graph_token, Input_token[21:]) ## Output_token: 70 x 64
+
+Joint_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
+```

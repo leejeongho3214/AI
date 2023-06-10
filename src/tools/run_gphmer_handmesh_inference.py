@@ -11,6 +11,8 @@ import argparse
 import os
 import os.path as op
 import code
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
 import json
 import time
 import datetime
@@ -71,42 +73,16 @@ def run_inference(args, image_list, Graphormer_model, mano, renderer, mesh_sampl
                 batch_imgs = torch.unsqueeze(img_tensor, 0).cuda()
                 batch_visual_imgs = torch.unsqueeze(img_visual, 0).cuda()
                 # forward-pass
-                pred_camera, pred_3d_joints, pred_vertices_sub, pred_vertices, hidden_states, att = Graphormer_model(batch_imgs, mano, mesh_sampler)
-                # obtain 3d joints from full mesh
-                pred_3d_joints_from_mesh = mano.get_3d_joints(pred_vertices)
-                pred_3d_pelvis = pred_3d_joints_from_mesh[:,cfg.J_NAME.index('Wrist'),:]
-                pred_3d_joints_from_mesh = pred_3d_joints_from_mesh - pred_3d_pelvis[:, None, :]
-                pred_vertices = pred_vertices - pred_3d_pelvis[:, None, :]
+                _, pred_3d_joints = Graphormer_model(batch_imgs)
 
-                # save attantion
-                att_max_value = att[-1]
-                att_cpu = np.asarray(att_max_value.cpu().detach())
-                att_all.append(att_cpu)
+                fig = plt.figure(dpi= 300)
+                ax1 = fig.add_subplot(131, projection ='3d')
+                parents = [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 0, 13, 14, 15, 0, 17, 18, 19]
+                pred_3d_joints = pred_3d_joints[0].detach().cpu()
 
-                # obtain 3d joints, which are regressed from the full mesh
-                pred_3d_joints_from_mesh = mano.get_3d_joints(pred_vertices)
-                # obtain 2d joints, which are projected from 3d joints of mesh
-                pred_2d_joints_from_mesh = orthographic_projection(pred_3d_joints_from_mesh.contiguous(), pred_camera.contiguous())
-                pred_2d_coarse_vertices_from_mesh = orthographic_projection(pred_vertices_sub.contiguous(), pred_camera.contiguous())
-
-
-                visual_imgs_output = visualize_mesh( renderer, batch_visual_imgs[0],
-                                                            pred_vertices[0].detach(), 
-                                                            pred_camera.detach())
-                # visual_imgs_output = visualize_mesh_and_attention( renderer, batch_visual_imgs[0],
-                #                                             pred_vertices[0].detach(), 
-                #                                             pred_vertices_sub[0].detach(), 
-                #                                             pred_2d_coarse_vertices_from_mesh[0].detach(),
-                #                                             pred_2d_joints_from_mesh[0].detach(),
-                #                                             pred_camera.detach(),
-                #                                             att[-1][0].detach())
-                visual_imgs = visual_imgs_output.transpose(1,2,0)
-                visual_imgs = np.asarray(visual_imgs)
-                        
-                temp_fname = image_file[:-4] + '_graphormer_pred.jpg'
-                print('save to ', temp_fname)
-                cv2.imwrite(temp_fname, np.asarray(visual_imgs[:,:,::-1]*255))
-    return
+                for num in range(1,21):
+                    ax1.plot([pred_3d_joints[num][0], pred_3d_joints[parents[num]][0]], [pred_3d_joints[num][1], pred_3d_joints[parents[num]][1]], [pred_3d_joints[num][2], pred_3d_joints[parents[num]][2]], c = np.array((0, 0, 0))/255.)
+                plt.savefig("." + image_file.split(".")[1:-1][0]+ "_vis.jpg")
 
 def visualize_mesh( renderer, images,
                     pred_vertices_full,
@@ -176,7 +152,7 @@ def parse_args():
                         "hidden_size / num_attention_heads should be in integer.")
     parser.add_argument("--intermediate_size", default=-1, type=int, required=False, 
                         help="Update model config if given.")
-    parser.add_argument("--input_feat_dim", default='2051,512,128', type=str, 
+    parser.add_argument("--input_feat_dim", default='2048,512,128', type=str, 
                         help="The Image Feature Dimension.")          
     parser.add_argument("--hidden_feat_dim", default='1024,256,64', type=str, 
                         help="The Image Feature Dimension.")  
@@ -292,7 +268,7 @@ def main(args):
         logger.info('Backbone total parameters: {}'.format(backbone_total_params))
 
         # build end-to-end Graphormer network (CNN backbone + multi-layer Graphormer encoder)
-        _model = Graphormer_Network(args, config, backbone, trans_encoder)
+        _model = Graphormer_Network(args, backbone, trans_encoder)
 
         if args.resume_checkpoint!=None and args.resume_checkpoint!='None':
             # for fine-tuning or resume training or inference, load weights from checkpoint
