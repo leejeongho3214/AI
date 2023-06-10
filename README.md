@@ -288,7 +288,7 @@ for j = 1 to 3 do:
 Joint_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
 Vertex_output = MLP(Output_token[21:216]) ## 195 x 3의 vertex를 MLP로 upsampling해서 총 778 x 3의 vertex coordinate를 구함
 ```
-
+ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
 ## 변경하게 된 이유
 
 - 아래 기존 모델에선 task가 3D hand pose estimation이 아닌 3D hand mesh reconstruction이 목적임
