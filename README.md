@@ -362,3 +362,9 @@ for j = 1 to 3 do:
 
 Joint_output = MLP(Output_token[:21]) ## 21 x 3의 hand joint coordinate를 구함
 ```
+
+## 결론
+- 코드를 변경한 부분을 표시하기에 전체적으로 모든 코드를 건들이고 전체적으로 변경하였습니다.
+- 기존 모델에서는 학습을 위해 3D Pose & Mesh annotation이 필요하지만 제안한 모델은 3D Pose annotation만을 가지고 학습이 가능합니다.
+- 3D Pose만 가지고 학습하기 위해 불필요한 Mesh를 사용하는 module을 모두 제거하였고 3D Mesh 없이도 준수한 3D pose estimation 성능을 보여줍니다.
+- 현재 제작중인 3D Synthetic hand dataset이 3D mehs annotation 생성에 제한적이기때문에 해당 데이터셋을 위한 모델을 제시하는데 큰 기여를 합니다.
